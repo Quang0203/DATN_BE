@@ -1,0 +1,16 @@
+spring:
+  app:
+    frontend:
+        url: http://localhost:4200
+  mail:
+    host: smtp.gmail.com
+    from: quangkedo2003@gmail.com
+    port: 587
+    username: quangkedo2003@gmail.com
+    password: scaa vidk bxrr mgzv
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
