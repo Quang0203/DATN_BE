@@ -31,3 +31,7 @@ build/
 
 ### VS Code ###
 .vscode/
+
+# Env file chứa secret, không commit
+.env
+application-local.properties
