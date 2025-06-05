@@ -56,8 +56,13 @@ import datn.datnbe.Entity.User;
 import datn.datnbe.Repository.BookingRepository;
 import datn.datnbe.Repository.CarRepository;
 import datn.datnbe.Repository.UserRepository;
+import datn.datnbe.dto.response.PaginatedResponse;
 import datn.datnbe.dto.response.ViewBookingListResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -82,6 +87,27 @@ public class ViewBookingListService {
             int userId = userOptional.get().getIduser();
             List<Booking> bookings = bookingRepository.findByUserIduser(userId);
             return bookings.stream().map(this::mapToBookingResponse).collect(Collectors.toList());
+        } else {
+            throw new IllegalArgumentException("User không có quyền truy cập.");
+        }
+    }
+
+    public PaginatedResponse<ViewBookingListResponse> getBookingsForUserPaginated(String email, int page, int size) {
+        Optional<User> userOptional = userRepository.findByEmail(email);
+        if (userOptional.isPresent() && "CUSTOMER".equals(userOptional.get().getRole())) {
+            int userId = userOptional.get().getIduser();
+            Pageable pageable = PageRequest.of(page, size, Sort.by("startdatetime").descending());
+            Page<Booking> bookingPage = bookingRepository.findByUserIduser(userId, pageable);
+            List<ViewBookingListResponse> bookings = bookingPage.getContent().stream()
+                    .map(this::mapToBookingResponse)
+                    .collect(Collectors.toList());
+            return new PaginatedResponse<>(
+                    bookings,
+                    page,
+                    size,
+                    bookingPage.getTotalElements(),
+                    bookingPage.getTotalPages()
+            );
         } else {
             throw new IllegalArgumentException("User không có quyền truy cập.");
         }

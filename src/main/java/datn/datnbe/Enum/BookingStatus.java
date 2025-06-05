@@ -11,12 +11,14 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public enum BookingStatus {
+    INITIALIZED("Initialized"),
     CANCELLED( "Cancelled"),
     IN_PROGRESS("In - Progress"),
     COMPLETE("Completed"),
     PENDING_PAYMENT("Pending Payment"),
-    CONFIRMRED("Confirmed"),
+    CONFIRMED("Confirmed"),
     PENDING_DEPOSIT("Pending Deposit"),
+    REPORTED("Reported")
     ;
     private String status;
 }

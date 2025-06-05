@@ -10,12 +10,17 @@ import datn.datnbe.Mapper.BookingMapper;
 import datn.datnbe.Repository.BookingRepository;
 import datn.datnbe.Repository.CarRepository;
 import datn.datnbe.Repository.UserRepository;
+import datn.datnbe.dto.response.PaginatedResponse;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.Accessors;
 import lombok.experimental.FieldDefaults;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
@@ -59,6 +64,21 @@ public class GetABookingService {
         User user = userRepository.findByEmail(email).orElseThrow(() -> new AppException(ErrorCode.USER_NOTFOUND));
         List<Booking> booking = bookingRepository.findBookingByIdCarOwner(user.getIduser());
         return new ApiResponse<>().builder().result(booking).build();
+    }
+
+    public PaginatedResponse<Booking> getListBookingPaginated(int page, int size) {
+        var context = SecurityContextHolder.getContext();
+        String email = context.getAuthentication().getName();
+        User user = userRepository.findByEmail(email).orElseThrow(() -> new AppException(ErrorCode.USER_NOTFOUND));
+        Pageable pageable = PageRequest.of(page, size, Sort.by("startdatetime").descending());
+        Page<Booking> bookingPage = bookingRepository.findBookingByIdCarOwner(user.getIduser(), pageable);
+        return new PaginatedResponse<>(
+                bookingPage.getContent(),
+                page,
+                size,
+                bookingPage.getTotalElements(),
+                bookingPage.getTotalPages()
+        );
     }
 
     public ApiResponse getListBookingUser() {

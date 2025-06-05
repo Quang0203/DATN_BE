@@ -42,4 +42,6 @@ public interface CarRepository extends JpaRepository<Car, Integer>, CarRepositor
     Long checkCarAvailable(@Param("startTime") LocalDateTime startTime,
                            @Param("endTime") LocalDateTime endTime,
                            @Param("idCar") int idCar);
+
+    List<Car> findByNumberofseatsGreaterThanEqualAndStatus(int numberOfSeats, String status);
 }

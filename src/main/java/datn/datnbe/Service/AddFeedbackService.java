@@ -2,6 +2,7 @@ package datn.datnbe.Service;
 
 import datn.datnbe.Entity.Booking;
 import datn.datnbe.Entity.Feedback;
+import datn.datnbe.Enum.BookingStatus;
 import datn.datnbe.Exception.AppException;
 import datn.datnbe.Exception.ErrorCode;
 import datn.datnbe.Repository.BookingRepository;
@@ -36,6 +37,10 @@ public class AddFeedbackService {
         feedback.setBookingCarIdcarowner(booking.getCarIdcarowner());
         feedback.setBookingIdbooking(booking.getIdbooking());
         feedback.setBookingUserIduser(booking.getUserIduser());
+
+        booking.setStatus(BookingStatus.REPORTED.getStatus());
+
+        bookingRepository.save(booking);
         feedbackRepository.save(feedback);
         return ApiResponse.<Feedback>builder()
                 .result(feedback)

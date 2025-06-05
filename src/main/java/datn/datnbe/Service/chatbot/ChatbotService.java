@@ -2,11 +2,13 @@ package datn.datnbe.Service.chatbot;
 
 import datn.datnbe.Entity.Car;
 import datn.datnbe.Repository.CarRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 public class ChatbotService {
 
@@ -19,31 +21,80 @@ public class ChatbotService {
     }
 
     public String handleChat(String question) {
-        // Bước 1: Gửi câu hỏi và danh sách field liên quan đến xe thuê cho API x.ai để phân tích tiêu chí tìm kiếm.
-        // Các field được sử dụng: brand, model, numberofseats, baseprice, descripton, status.
+        // 1. Phân tích query (giữ nguyên) ...
         List<String> carFields = Arrays.asList("brand", "model", "numberofseats", "baseprice", "descripton", "status");
-        // Ví dụ API trả về: {"brand": "Toyota", "model": "Camry", "numberofseats": 4, "baseprice": "500", "status": "available"}
+
         Map<String, Object> criteria = grokQaService.analyzeQuery(question, carFields);
 
-        // Bước 2: Dựa vào tiêu chí (criteria) có thể áp dụng lọc xe thuê từ DB.
-        // Ví dụ: Nếu tiêu chí có "brand" hoặc "model" cụ thể, bạn có thể xây dựng thêm phương thức lọc.
-        // Ở đây, ví dụ đơn giản là lấy toàn bộ xe từ DB.
+        // 2. Lấy toàn bộ danh sách xe (hoặc filter theo criteria nếu muốn)
         List<Car> cars = carRepository.findAll();
 
-        // Chuyển đổi danh sách xe thành danh sách Map để gửi cho API x.ai
+        // 3. Xây dựng carData (chỉ để relative url)
         List<Map<String, Object>> carData = cars.stream().map(car -> {
             Map<String, Object> map = new HashMap<>();
             map.put("brand", car.getBrand());
             map.put("model", car.getModel());
             map.put("numberofseats", car.getNumberofseats());
             map.put("baseprice", car.getBaseprice());
+            map.put("address", car.getAddress());
             map.put("descripton", car.getDescripton());
             map.put("status", car.getStatus());
-            map.put("url", "/localhost:4200/view-car/" + car.getIdcar());
+            // Chỉ để relative path
+            map.put("url", "/view-car/" + car.getIdcar());
             return map;
         }).collect(Collectors.toList());
 
-        // Bước 3: Gửi câu hỏi và dữ liệu xe cho API x.ai để tổng hợp câu trả lời tư vấn cuối cùng.
-        return grokQaService.assembleAnswer(question, carData);
+        // 4. Tạo prompt full, yêu cầu x.ai trả markdown link
+        String prompt = "Dựa vào dữ liệu xe thuê dưới đây và câu hỏi của khách hàng, " +
+                "hãy tư vấn lựa chọn xe phù hợp và khi liệt kê mỗi xe, hãy đưa link theo dạng markdown. " +
+                "Cú pháp markdown: `[Tên xe](http://localhost:4200/view-car/{id})`. Ví dụ: `[Xem Toyota Camry](http://localhost:4200/view-car/123)`.\n" +
+                "Câu hỏi: " + question + "\n" +
+                "Dữ liệu xe (mỗi item gồm brand, model, numberofseats, baseprice, address,  descripton, status, url): " + carData.toString() + "\n" +
+                "Hãy trả về câu trả lời chi tiết, không quá dài, kèm markdown link cho từng gợi ý xe.";
+
+        // 5. Gọi x.ai
+        String answer = grokQaService.assembleAnswer(prompt, carData);
+
+        return answer;
+    }
+
+    public String handleChatWithHistory(List<Map<String, String>> messages) {
+        // 1. Build prompt từ history
+        StringBuilder promptBuilder = new StringBuilder();
+        for (Map<String, String> msg : messages) {
+            String role = msg.get("role");
+            String content = msg.get("content");
+            promptBuilder.append(role.equals("user") ? "Người dùng: " : "Bot: ").append(content).append("\n");
+        }
+        String prompt = promptBuilder.toString();
+
+        // 2. Lấy danh sách xe
+        List<Car> cars = carRepository.findAll();
+
+        // 3. Xây dựng carData
+        List<Map<String, Object>> carData = cars.stream().map(car -> {
+            Map<String, Object> map = new HashMap<>();
+            map.put("brand", car.getBrand());
+            map.put("model", car.getModel());
+            map.put("numberofseats", car.getNumberofseats());
+            map.put("baseprice", car.getBaseprice());
+            map.put("address", car.getAddress());
+            map.put("descripton", car.getDescripton());
+            map.put("status", car.getStatus());
+            map.put("url", "/view-car/" + car.getIdcar());
+            return map;
+        }).collect(Collectors.toList());
+
+        // 4. Prompt kèm yêu cầu markdown
+        String fullPrompt = "Dựa vào dữ liệu xe thuê dưới đây và cuộc trò chuyện trước đó, " +
+                "hãy tư vấn lựa chọn xe phù hợp ưu tiên tiêu chí address. Khi liệt kê mỗi xe, hãy dùng markdown link theo cú pháp `[Tên xe](http://localhost:4200/view-car/{id})`. " +
+                "Ví dụ: `[Xem Toyota Camry](http://localhost:4200/view-car/123)`.\n" +
+                "Cuộc trò chuyện: " + prompt + "\n" +
+                "Dữ liệu xe (brand, model, numberofseats, baseprice, address, descripton, status, url): " + carData.toString() + "\n" +
+                "Hãy trả về câu trả lời kèm markdown link cho từng xe được đề xuất.";
+
+        // 5. Gọi x.ai
+        String answer = grokQaService.assembleAnswer(fullPrompt, carData);
+        return answer;
     }
 }

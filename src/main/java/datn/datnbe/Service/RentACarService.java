@@ -24,12 +24,10 @@ import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.UnsupportedEncodingException;
-import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.UUID;
@@ -58,12 +56,13 @@ public class RentACarService {
 
     @PreAuthorize("hasRole('CUSTOMER')")
     public ApiResponse makeABooking(RentACarRequest request, int carIdcar) {
-        System.out.print(request.getPhoneno()+"lalsl");
+        System.out.print(request.getPhoneno() + "lalsl");
         System.out.println(request);
         Booking booking = bookingMapper.toBooking(request);
         booking.setCarIdcar(carIdcar);
-        booking.setDriversinformation(request.getName()+","+request.getPhoneno()+","+request.getEmail()+","+request.getDrivinglicense());
+        booking.setDriversinformation(request.getName() + "," + request.getPhoneno() + "," + request.getEmail() + "," + request.getDrivinglicense());
         Car car = carRepository.findById(carIdcar).orElseThrow(() -> new AppException(ErrorCode.CAR_NOTFOUND));
+        car.setStatus("Booked");
         int idCarOwner = car.getIdcarowner();
 
         if (carRepository.checkCarAvailable(request.getStartdatetime(), request.getEnddatetime(), carIdcar) == 1) {
@@ -82,7 +81,7 @@ public class RentACarService {
             }
 
             booking.setUserIduser(user.getIduser());
-            booking.setStatus(BookingStatus.PENDING_DEPOSIT.getStatus());
+            booking.setStatus(BookingStatus.INITIALIZED.getStatus());
             booking.setEnddatetime(request.getEnddatetime());
             booking.setStartdatetime(request.getStartdatetime());
             booking.setBookingno(BookingNoGenerator.generateBookingNo());
@@ -130,58 +129,102 @@ public class RentACarService {
 
     @Transactional
     public ApiResponse paidDeposid(Integer idbooking) throws UnsupportedEncodingException {
+        Booking booking = bookingRepository.findById(idbooking).orElseThrow(() -> new AppException(ErrorCode.BOOKING_NOTFOUND));
+        User user = userRepository.findById(booking.getUserIduser()).orElseThrow(() -> new AppException(ErrorCode.USER_NOTFOUND));
+        Car car = carRepository.findById(booking.getCarIdcar()).orElseThrow(() -> new AppException(ErrorCode.CAR_NOTFOUND));
+        User carowner = userRepository.findById(booking.getCarIdcarowner()).orElseThrow(() -> new AppException(ErrorCode.USER_NOTFOUND));
 
-        Booking booking =
-                bookingRepository.findById(idbooking).orElseThrow(() -> new AppException(ErrorCode.BOOKING_NOTFOUND));
-        User user = userRepository
-                .findById(booking.getUserIduser())
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOTFOUND));
-        Car car = carRepository
-                .findById(booking.getCarIdcar())
-                .orElseThrow(() -> new AppException(ErrorCode.CAR_NOTFOUND));
-        User carowner = userRepository
-                .findById(booking.getCarIdcarowner())
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOTFOUND));
-
-        Transactions transactionsCustomer = new Transactions();
-        transactionsCustomer.setBookingno(booking.getBookingno());
-        transactionsCustomer.setUserIduser(user.getIduser());
-        transactionsCustomer.setType("Paid Deposit");
-        transactionsCustomer.setDatetime(LocalDateTime.now());
-        transactionsCustomer.setCarname(car.getName());
-
-        Transactions transactionsCarOwner = new Transactions();
-        transactionsCarOwner.setBookingno(booking.getBookingno());
-        transactionsCarOwner.setUserIduser(carowner.getIduser());
-        transactionsCarOwner.setType("Receive Deposit");
-        transactionsCarOwner.setDatetime(LocalDateTime.now());
-        transactionsCarOwner.setCarname(car.getName());
-
-        if (booking.getStatus().equals(BookingStatus.PENDING_DEPOSIT.getStatus())) {
-            System.out.println("Booking status: " + booking.getStatus());
-            System.out.println("Payment method: " + booking.getPaymentmethod());
+        if (booking.getStatus().equals(BookingStatus.INITIALIZED.getStatus())) {
             if (booking.getPaymentmethod().equals(PayMentMethod.WALLET.getName())) {
-                System.out.println("Payment method: " + booking.getPaymentmethod());
-                System.out.println("User wallet: " + user.getWallet());
+                // Xử lý thanh toán bằng ví
                 user.setWallet(user.getWallet() - car.getDeposite());
-                System.out.println("User wallet after deduction: " + user.getWallet());
-                transactionsCustomer.setAmount(-car.getDeposite());
-                booking.setStatus(BookingStatus.CONFIRMRED.getStatus());
+                booking.setStatus(BookingStatus.CONFIRMED.getStatus());
                 car.setStatus("Booked");
-
-                carowner.setWallet(carowner.getWallet() + car.getDeposite());
-                transactionsCarOwner.setAmount(car.getDeposite());
+                // Tạo giao dịch cho khách hàng
+                Transactions transactionsCustomer = new Transactions();
+                transactionsCustomer.setBookingno(booking.getBookingno());
+                transactionsCustomer.setUserIduser(user.getIduser());
+                transactionsCustomer.setType("Trả tiền cọc");
+                transactionsCustomer.setDatetime(LocalDateTime.now());
+                transactionsCustomer.setCarname(car.getName());
+                transactionsCustomer.setAmount(-car.getDeposite());
                 transactionsRepository.save(transactionsCustomer);
+
+                // Tạo giao dịch cho chủ xe
+                carowner.setWallet(carowner.getWallet() + car.getDeposite());
+                Transactions transactionsCarOwner = new Transactions();
+                transactionsCarOwner.setBookingno(booking.getBookingno());
+                transactionsCarOwner.setUserIduser(carowner.getIduser());
+                transactionsCarOwner.setType("Nhận tiền cọc");
+                transactionsCarOwner.setDatetime(LocalDateTime.now());
+                transactionsCarOwner.setCarname(car.getName());
+                transactionsCarOwner.setAmount(car.getDeposite());
                 transactionsRepository.save(transactionsCarOwner);
+            } else {
+                if (booking.getPaymentmethod().equals(PayMentMethod.BANK_TRANSFER.getName())) {
+                    // Xử lý thanh toán bằng chuyển khoản ngân hàng
+                    booking.setStatus(BookingStatus.PENDING_DEPOSIT.getStatus());
+                    // Tạo giao dịch cho khách hàng (chỉ ghi nhận đã thanh toán qua ngân hàng)
+                    Transactions transactionsCustomer = new Transactions();
+                    transactionsCustomer.setBookingno(booking.getBookingno());
+                    transactionsCustomer.setUserIduser(user.getIduser());
+                    transactionsCustomer.setType("Trả tiền cọc qua chuyển khoản ngân hàng");
+                    transactionsCustomer.setDatetime(LocalDateTime.now());
+                    transactionsCustomer.setCarname(car.getName());
+                    transactionsCustomer.setAmount(-car.getDeposite());
+                    transactionsCustomer.setNote("Ví không thay đổi");
+                    transactionsRepository.save(transactionsCustomer);
+                    // Tạo giao dịch cho chủ xe
+                    Transactions transactionsCarOwner = new Transactions();
+                    transactionsCarOwner.setBookingno(booking.getBookingno());
+                    transactionsCarOwner.setUserIduser(carowner.getIduser());
+                    transactionsCarOwner.setType("Nhận tiền cọc qua chuyển khoản ngân hàng");
+                    transactionsCarOwner.setDatetime(LocalDateTime.now());
+                    transactionsCarOwner.setCarname(car.getName());
+                    transactionsCarOwner.setAmount(car.getDeposite());
+                    transactionsCarOwner.setNote("Ví không thay đổi");
+                    transactionsRepository.save(transactionsCarOwner);
+                } else {
+                    // Xử lý thanh toán bằng tiền mặt
+                    booking.setStatus(BookingStatus.PENDING_DEPOSIT.getStatus());
+                    // Tạo giao dịch cho khách hàng (chỉ ghi nhận đã thanh toán qua ngân hàng)
+                    Transactions transactionsCustomer = new Transactions();
+                    transactionsCustomer.setBookingno(booking.getBookingno());
+                    transactionsCustomer.setUserIduser(user.getIduser());
+                    transactionsCustomer.setType("Trả tiền cọc qua tiền mặt");
+                    transactionsCustomer.setDatetime(LocalDateTime.now());
+                    transactionsCustomer.setCarname(car.getName());
+                    transactionsCustomer.setAmount(-car.getDeposite());
+                    transactionsCustomer.setNote("Ví không thay đổi");
+                    transactionsRepository.save(transactionsCustomer);
+                    // Tạo giao dịch cho chủ xe
+                    Transactions transactionsCarOwner = new Transactions();
+                    transactionsCarOwner.setBookingno(booking.getBookingno());
+                    transactionsCarOwner.setUserIduser(carowner.getIduser());
+                    transactionsCarOwner.setType("Nhận tiền cọc băằng tiền mặt");
+                    transactionsCarOwner.setDatetime(LocalDateTime.now());
+                    transactionsCarOwner.setCarname(car.getName());
+                    transactionsCarOwner.setAmount(car.getDeposite());
+                    transactionsCarOwner.setNote("Ví không thay đổi");
+                    transactionsRepository.save(transactionsCarOwner);
+                }
             }
-        }else{
-            booking.setStatus(BookingStatus.PENDING_DEPOSIT.getStatus());
         }
+        // Lưu các thay đổi
         bookingRepository.save(booking);
         userRepository.save(user);
         userRepository.save(carowner);
+        carRepository.save(car);
 
-        System.out.println("Booking status after payment: " + booking.getStatus());
+        return new ApiResponse().builder().result(booking).build();
+    }
+
+    public ApiResponse confirmDeposit(Integer idbooking) {
+        Booking booking = bookingRepository.findById(idbooking).orElseThrow(() -> new AppException(ErrorCode.BOOKING_NOTFOUND));
+        if (booking.getStatus().equals(BookingStatus.PENDING_PAYMENT.getStatus()) || booking.getStatus().equals(BookingStatus.PENDING_DEPOSIT.getStatus())) {
+            booking.setStatus(BookingStatus.CONFIRMED.getStatus());
+            bookingRepository.save(booking);
+        }
         return new ApiResponse().builder().result(booking).build();
     }
 

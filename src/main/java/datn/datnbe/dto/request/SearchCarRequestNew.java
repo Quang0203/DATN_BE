@@ -14,6 +14,6 @@ import java.time.LocalDateTime;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class SearchCarRequestNew {
     String address;
-    LocalDateTime startTime;
-    LocalDateTime endTime;
+    LocalDateTime startDateTime;
+    LocalDateTime endDateTime;
 }

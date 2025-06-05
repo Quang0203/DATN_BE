@@ -38,7 +38,7 @@ public class ConfirmPickUpService {
     @PreAuthorize("hasRole('CUSTOMER')")
     public ApiResponse confirmPickUpService(Integer idbooking){
         Booking booking = bookingRepository.findById(idbooking).orElseThrow(() -> new AppException(ErrorCode.BOOKING_NOTFOUND));
-        if(booking.getStatus().equals(BookingStatus.CONFIRMRED.getStatus()))
+        if(booking.getStatus().equals(BookingStatus.CONFIRMED.getStatus()))
         {
             booking.setStatus(BookingStatus.IN_PROGRESS.getStatus());
             bookingRepository.save(booking);

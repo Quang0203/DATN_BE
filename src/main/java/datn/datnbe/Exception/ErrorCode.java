@@ -16,7 +16,7 @@ public enum ErrorCode {
     PASSWORC_NOTEQUAL (1008, "Mật khẩu không trùng khớp", HttpStatus.BAD_REQUEST),
     CAR_NOTFOUND(1009, "Không tìm thấy xe!!", HttpStatus.BAD_REQUEST),
     BOOKING_NOTFOUND(1010, "Không tìm thấy booking", HttpStatus.BAD_REQUEST),
-    NOTENOUGH_WALLET(1011, "Your wallet doesn’t have enough balance. Please top-up your wallet and try again", HttpStatus.BAD_REQUEST),
+    NOTENOUGH_WALLET(1011, "Ví của bạn không đủ số dư. Vui lòng nạp tiền vào ví của bạn và thử lại", HttpStatus.BAD_REQUEST),
     STOP_CAR_FAIL(1012, "Hiện tại không thể Stop phương tiện này", HttpStatus.BAD_REQUEST),
     CAROWNER_CONFIRM(1013, "Chủ xe chưa xác nhận thanh toán!!", HttpStatus.BAD_REQUEST),
     CAR_NOT_AVAILABLE(1004, "Xe nay hien tai chua the thue", HttpStatus.BAD_REQUEST),

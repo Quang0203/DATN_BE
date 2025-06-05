@@ -73,18 +73,22 @@ public class SearchCarService {
     }
 
     public ApiResponse<List<SearchCarResponse>> findAvailableCars(SearchCarRequestNew searchCarRequestNew) {
-        List<Car> carListSearch = carRepository.findAvailableCars(searchCarRequestNew.getAddress(), searchCarRequestNew.getStartTime(), searchCarRequestNew.getEndTime());
+        System.out.println("Searching for available cars with address: " + searchCarRequestNew.getAddress() +
+                ", start time: " + searchCarRequestNew.getStartDateTime() +
+                ", end time: " + searchCarRequestNew.getEndDateTime());
+        List<Car> carListSearch = carRepository.findAvailableCars(searchCarRequestNew.getAddress(), searchCarRequestNew.getStartDateTime(), searchCarRequestNew.getEndDateTime());
         ApiResponse<List<SearchCarResponse>> apiResponse = new ApiResponse<>();
         List<SearchCarResponse> searchCarResponseList = new ArrayList<>();
         for (Car i : carListSearch){
-            if(i.getStatus().equals(CarStatus.Available.name())){
+//            if(i.getStatus().equals(CarStatus.Available.name())){
                 SearchCarResponse searchCarResponse = new SearchCarResponse();
                 searchCarResponse.setCar(i);
                 searchCarResponse.setRate(calculateAverageRateForCar(i.getIdcar()));
                 searchCarResponse.setBookingNumber(countBookingsForCar(i.getIdcar()));
                 searchCarResponseList.add(searchCarResponse);
-            }
+//            }
         }
+        System.out.println(carListSearch);
         apiResponse.setResult(searchCarResponseList);
         return apiResponse;
     }

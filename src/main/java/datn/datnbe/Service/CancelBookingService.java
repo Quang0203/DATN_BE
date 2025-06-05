@@ -1,5 +1,6 @@
 package datn.datnbe.Service;
 
+import datn.datnbe.Enum.CarStatus;
 import datn.datnbe.dto.response.ApiResponse;
 import datn.datnbe.Entity.Booking;
 import datn.datnbe.Entity.Car;
@@ -46,15 +47,29 @@ public class CancelBookingService {
         User user = userRepository.findById(booking.getUserIduser()).orElseThrow(() -> new AppException(ErrorCode.USER_NOTFOUND));
         User carowner = userRepository.findById(booking.getCarIdcarowner()).orElseThrow(() -> new AppException(ErrorCode.USER_NOTFOUND));
         Car car = carRepository.findById(booking.getCarIdcar()).orElseThrow(() -> new AppException(ErrorCode.CAR_NOTFOUND));
-        if(booking.getStatus().equals(BookingStatus.CONFIRMRED.getStatus()))
+        if(booking.getStatus().equals(BookingStatus.CONFIRMED.getStatus()))
         {
-            user.setWallet(user.getWallet() + car.getDeposite());
-            carowner.setWallet(carowner.getWallet() - car.getDeposite());
-            userRepository.save(user);
-            userRepository.save(carowner);
+//            user.setWallet(user.getWallet() + car.getDeposite());
+//            carowner.setWallet(carowner.getWallet() - car.getDeposite());
+//            userRepository.save(user);
+//            userRepository.save(carowner);
+            car.setStatus(CarStatus.Available.name());
             booking.setStatus(BookingStatus.CANCELLED.getStatus());
             bookingRepository.save(booking);
         }
+        if(booking.getStatus().equals(BookingStatus.INITIALIZED.getStatus()))
+        {
+            car.setStatus(CarStatus.Available.name());
+            booking.setStatus(BookingStatus.CANCELLED.getStatus());
+            bookingRepository.save(booking);
+
+        }
+        if (booking.getStatus().equals(BookingStatus.PENDING_DEPOSIT.getStatus())) {
+            car.setStatus(CarStatus.Available.name());
+            booking.setStatus(BookingStatus.CANCELLED.getStatus());
+            bookingRepository.save(booking);
+        }
+
         List<User> resArray = new ArrayList<>();
         resArray.add(user);
         resArray.add(carowner);

@@ -14,7 +14,7 @@ public class UserRespone {
     int iduser;
     String name;
     LocalDate dateofbirth;
-    int nationalidno;
+    String nationalidno;
     String phoneno;
     String email;
     String address;

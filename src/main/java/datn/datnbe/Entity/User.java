@@ -18,7 +18,7 @@ public class User {
      int iduser;
      String name;
      LocalDate dateofbirth;
-     int nationalidno;
+     String nationalidno;
      String phoneno;
      String email;
      String address;

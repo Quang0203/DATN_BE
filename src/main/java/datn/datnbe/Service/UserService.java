@@ -14,6 +14,7 @@ import datn.datnbe.dto.response.UserRespone;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.mail.SimpleMailMessage;
@@ -29,6 +30,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class UserService {
@@ -76,6 +78,7 @@ public class UserService {
 
     public ApiResponse createUser(UserCreationRequest request) {
         User user = userMapper.toUser(request);
+        log.info("Driving license: {}", user.getDrivinglicense());
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new AppException(ErrorCode.USER_EXISTED);

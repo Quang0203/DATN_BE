@@ -1,5 +1,6 @@
 package datn.datnbe.Controller;
 
+import datn.datnbe.Repository.CarRepository;
 import datn.datnbe.dto.response.ApiResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -18,28 +19,13 @@ public class HomeController {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    @Autowired
+    private CarRepository carRepository;
+
     @GetMapping("/getCity")
     public ApiResponse getCity() {
-        String sql = "SELECT address, COUNT(*) AS car_count, MIN(images) AS image " +
-                "FROM car " +
-                "GROUP BY address " +
-                "ORDER BY car_count DESC " +
-                "LIMIT 6";
-
-        List<Map<String, Object>> results = jdbcTemplate.queryForList(sql);
-        for (Map<String, Object> result : results) {
-            Object carCountObj = result.get("car_count");
-            if (carCountObj instanceof Number) {
-                Number carCountNumber = (Number) carCountObj;
-                int carCount = carCountNumber.intValue();
-                int roundedCount = (carCount / 10) * 10;
-                result.put("car_count_rounded", roundedCount + "+");
-            } else {
-                result.put("car_count_rounded", "Error");
-            }
-        }
-        ApiResponse apiResponse = new ApiResponse<>();
-        apiResponse.setResult(results);
+        ApiResponse<List<Object[]>> apiResponse = new ApiResponse<>();
+        apiResponse.setResult(carRepository.findTop5CitiesWithMostCars());
         return apiResponse;
     }
 

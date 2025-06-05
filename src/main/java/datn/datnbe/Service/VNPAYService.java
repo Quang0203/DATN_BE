@@ -2,6 +2,12 @@ package datn.datnbe.Service;
 
 import datn.datnbe.Config.VNPAYConfig;
 import datn.datnbe.Entity.Car;
+import datn.datnbe.Mapper.BookingMapper;
+import datn.datnbe.Repository.BookingRepository;
+import datn.datnbe.Repository.CarRepository;
+import datn.datnbe.Repository.TransactionsRepository;
+import datn.datnbe.Repository.UserRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.awt.print.Book;
@@ -13,13 +19,27 @@ import java.util.*;
 
 @Service
 public class VNPAYService {
-    public String createPayment(Integer idbooking , Car car) throws UnsupportedEncodingException {
+
+    @Autowired
+    CarRepository carRepository;
+    @Autowired
+    BookingRepository bookingRepository;
+    @Autowired
+    BookingMapper bookingMapper;
+    @Autowired
+    UserRepository userRepository;
+    @Autowired
+    TransactionsRepository transactionsRepository;
+
+    public String createPayment(Integer idbooking, float amountRequest , Car car) throws UnsupportedEncodingException {
         String orderType = "other";
-        long amount = (long) car.getDeposite()*100;
+        long amount = (long) amountRequest*100;
         String vnp_TxnRef = VNPAYConfig.getRandomNumber(8);
         String vnp_IpAddr = "192.168.100.3";
 
         String vnp_TmnCode = VNPAYConfig.vnp_TmnCode;
+//        String vnp_ReturnUrl = VNPAYConfig.vnp_ReturnUrl + idbooking;
+        String vnp_ReturnUrl = VNPAYConfig.vnp_ReturnUrl;
 
         Map<String, String> vnp_Params = new HashMap<>();
         vnp_Params.put("vnp_Version", VNPAYConfig.vnp_Version);
@@ -33,7 +53,7 @@ public class VNPAYService {
         vnp_Params.put("vnp_OrderInfo",idbooking.toString());
         vnp_Params.put("vnp_Locale", "vn");
         vnp_Params.put("vnp_OrderType", orderType);
-        vnp_Params.put("vnp_ReturnUrl", VNPAYConfig.vnp_ReturnUrl);
+        vnp_Params.put("vnp_ReturnUrl", vnp_ReturnUrl);
         vnp_Params.put("vnp_IpAddr", vnp_IpAddr);
 
 

@@ -15,7 +15,7 @@ import java.time.LocalDate;
 public class UserCreationRequest {
     String name;
     LocalDate dateofbirth;
-    int nationalidno;
+    String nationalidno;
     String email;
     String address;
     String drivinglicense;

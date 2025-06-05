@@ -1,6 +1,8 @@
 package datn.datnbe.Repository;
 
 import datn.datnbe.Entity.Booking;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -9,18 +11,22 @@ import org.springframework.stereotype.Repository;
 import java.time.LocalDateTime;
 import java.util.List;
 
-
 @Repository
 public interface BookingRepository extends JpaRepository<Booking, Integer> {
     List<Booking> findByUserIduser(int userId);
 
+    Page<Booking> findByUserIduser(int userId, Pageable pageable);
+
     @Query(value = "select * from booking where Car_idCarOwner = :idcarowner", nativeQuery = true)
     public List<Booking> findBookingByIdCarOwner(@Param("idcarowner") Integer idcarowner);
+
+    @Query(value = "select b from Booking b where b.carIdcarowner = :idcarowner")
+    Page<Booking> findBookingByIdCarOwner(@Param("idcarowner") Integer idcarowner, Pageable pageable);
 
     @Query(value = "select * from booking where User_idUser = :iduser", nativeQuery = true)
     public List<Booking> findBookingByIdUser(@Param("iduser") Integer iduser);
 
-    @Query(value = "select * from booking where Car_idCar = :idcar and status NOT IN ('Completed', 'Cancelled')", nativeQuery = true)
+    @Query(value = "select * from booking where Car_idCar = :idcar and status NOT IN ('Completed', 'Reported', 'Cancelled')", nativeQuery = true)
     public List<Booking> findBookingByIdCar(@Param("idcar") Integer idcar);
 
     @Query("SELECT b FROM Booking b WHERE b.carIdcar = :idCar AND " +

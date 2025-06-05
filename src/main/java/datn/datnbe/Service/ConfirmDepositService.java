@@ -47,7 +47,7 @@ public class ConfirmDepositService {
             User carOwner = userRepository.findById(booking.getCarIdcarowner()).orElseThrow(() -> new AppException(ErrorCode.USER_NOTFOUND));
             carOwner.setWallet(carOwner.getWallet() + car.getDeposite());
             userRepository.save(carOwner);
-            booking.setStatus(BookingStatus.CONFIRMRED.getStatus());
+            booking.setStatus(BookingStatus.CONFIRMED.getStatus());
             bookingRepository.save(booking);
         }else throw new AppException(ErrorCode.CAROWNER_CONFIRM);
         return new ApiResponse()

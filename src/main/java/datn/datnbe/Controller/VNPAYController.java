@@ -22,7 +22,7 @@ public class VNPAYController {
 //    }
 
 //    @GetMapping("/returnurl")
-//    public ApiResponse returnUrl(@RequestParam(value = "vnp_ResponseCode") String vnp_ResponseCode) {
+//    public ApiResponse returnUrlPaidDeposit(@RequestParam(value = "vnp_ResponseCode") String vnp_ResponseCode) {
 //        System.out.println(vnp_ResponseCode);
 //        if(vnp_ResponseCode.equals("00")){
 //            return new ApiResponse()
